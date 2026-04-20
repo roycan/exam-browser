@@ -2,6 +2,20 @@ const { app, BrowserWindow, globalShortcut } = require('electron');
 
 let win; // declare globally so other handlers can access it
 
+// Prevent multiple instances - only one exam browser can run at a time
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    // Someone tried to run a second instance, focus our window instead
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1200,
@@ -11,7 +25,14 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: __dirname + '/preload.js', // optional preload script
+      // Disable webview tag to prevent embedded content
+      webviewTag: false,
     },
+  });
+
+  // Disable dev tools - ensure they can't be opened
+  win.webContents.on('devtools-opened', () => {
+    win.webContents.closeDevTools();
   });
 
   // Load Moodle LMS
@@ -39,43 +60,46 @@ win.webContents.setWindowOpenHandler(({ url }) => {
   win.on('closed', () => {
     win = null;
   });
+
+  // Safety net: re-enter kiosk mode if somehow exited
+  win.on('leave-full-screen', () => {
+    if (win) {
+      win.setKiosk(true);
+    }
+  });
+
+  // Force focus back if window loses focus (prevents using other apps)
+  win.on('blur', () => {
+    if (win && !win.isDestroyed()) {
+      win.focus();
+    }
+  });
+
+  // Block drag-and-drop of files into the browser
+  win.webContents.on('will-navigate', (event, url) => {
+    // Block file:// URLs (drag-and-drop)
+    if (url.startsWith('file://')) {
+      event.preventDefault();
+      return;
+    }
+    // Block navigation outside Moodle
+    if (
+        !url.startsWith('https://khub.mc.pshs.edu.ph/') &&
+        !url.startsWith('https://accounts.google.com/')
+    ) {
+      event.preventDefault();
+    }
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
 
-  // Block common shortcuts globally
-  globalShortcut.register('CommandOrControl+T', () => {}); // new tab
-  globalShortcut.register('CommandOrControl+N', () => {}); // new window
-  globalShortcut.register('CommandOrControl+Shift+I', () => {}); // dev tools
-  globalShortcut.register('F12', () => {}); // dev tools
-  // globalShortcut.register('CommandOrControl+W', () => {}); // REMOVED: close tab/window (redundant in kiosk mode)
-  globalShortcut.register('CommandOrControl+R', () => {}); // refresh
-  globalShortcut.register('F5', () => {}); // refresh
-  globalShortcut.register('CommandOrControl+Shift+R', () => {}); // hard refresh
-  globalShortcut.register('CommandOrControl+L', () => {}); // address bar
-  globalShortcut.register('Alt+F4', () => {}); // close window (Windows)
-  globalShortcut.register('Alt+Left', () => {}); // back
-  globalShortcut.register('Alt+Right', () => {}); // forward
-  globalShortcut.register('PrintScreen', () => {}); // screenshot
-  globalShortcut.register('CommandOrControl+PrintScreen', () => {}); // screenshot
-  globalShortcut.register('Alt+PrintScreen', () => {}); // screenshot active window
-  globalShortcut.register('CommandOrControl+F', () => {}); // find
-  globalShortcut.register('CommandOrControl+G', () => {}); // find next
-  globalShortcut.register('CommandOrControl+Shift+G', () => {}); // find previous
-  globalShortcut.register('CommandOrControl+U', () => {}); // view source
-  globalShortcut.register('CommandOrControl+Shift+C', () => {}); // inspect element
-  globalShortcut.register('CommandOrControl+Shift+J', () => {}); // console
-  globalShortcut.register('CommandOrControl+Tab', () => {}); // switch tabs
-  // globalShortcut.register('Escape', () => {}); // REMOVED: exit fullscreen (needed for modal dismissal)
-  globalShortcut.register('F1', () => {}); // help
+  // Minimal global shortcuts (only those that bypass the renderer process)
+  // Most shortcuts are handled by preload.js to avoid system-wide key grabs on Linux
+  globalShortcut.register('Alt+F4', () => {}); // close window (Windows) - prevent accidental closure
+  globalShortcut.register('F11', () => {}); // toggle fullscreen - prevent exiting kiosk mode
   
-  // Block system shortcuts (may not work on all platforms due to OS limitations)
-  globalShortcut.register('F11', () => {}); // toggle fullscreen
-  // globalShortcut.register('Alt+Tab', () => {}); // REMOVED: window switching (unreliable on Linux, overly aggressive)
-  // globalShortcut.register('Super', () => {}); // REMOVED: Windows key / Super key (unreliable on Linux)
-  // globalShortcut.register('Super+L', () => {}); // REMOVED: lock screen (unreliable on Linux)
-
   // Secret exit shortcut
   globalShortcut.register('CommandOrControl+Q', () => {
     app.quit();

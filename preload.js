@@ -3,6 +3,15 @@ window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 }, false);
 
+// Detect page visibility changes - student may have switched away
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Page is hidden - student switched away from the exam
+    // This is logged for teacher review (in a real implementation, you'd send this to a server)
+    console.log('[EXAM SECURITY] Student switched away from exam page at:', new Date().toISOString());
+  }
+});
+
 // Initialize offense counter from localStorage
 // Reset offense counter on app start to give students a fresh start
 localStorage.removeItem('examOffenseCount');
