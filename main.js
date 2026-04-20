@@ -27,12 +27,12 @@ function createWindow() {
     }
   });
 
-  // Block new window creation except for Google accounts (for SSO login
-win.webContents.setWindowOpenHandler(({ url }) => { 
-    if (url.startsWith('https://accounts.google.com/')) { 
-        return { action: 'allow' }; 
-    } 
-    return { action: 'deny' }; 
+  // Block new window creation except for Google accounts (for SSO login) and Moodle domain
+win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://accounts.google.com/') || url.startsWith('https://khub.mc.pshs.edu.ph/')) {
+        return { action: 'allow' };
+    }
+    return { action: 'deny' };
 });
 
   // Clean up reference when window is closed
@@ -49,7 +49,7 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+N', () => {}); // new window
   globalShortcut.register('CommandOrControl+Shift+I', () => {}); // dev tools
   globalShortcut.register('F12', () => {}); // dev tools
-  globalShortcut.register('CommandOrControl+W', () => {}); // close tab/window
+  // globalShortcut.register('CommandOrControl+W', () => {}); // REMOVED: close tab/window (redundant in kiosk mode)
   globalShortcut.register('CommandOrControl+R', () => {}); // refresh
   globalShortcut.register('F5', () => {}); // refresh
   globalShortcut.register('CommandOrControl+Shift+R', () => {}); // hard refresh
@@ -67,14 +67,14 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Shift+C', () => {}); // inspect element
   globalShortcut.register('CommandOrControl+Shift+J', () => {}); // console
   globalShortcut.register('CommandOrControl+Tab', () => {}); // switch tabs
-  globalShortcut.register('Escape', () => {}); // exit fullscreen
+  // globalShortcut.register('Escape', () => {}); // REMOVED: exit fullscreen (needed for modal dismissal)
   globalShortcut.register('F1', () => {}); // help
   
   // Block system shortcuts (may not work on all platforms due to OS limitations)
   globalShortcut.register('F11', () => {}); // toggle fullscreen
-  globalShortcut.register('Alt+Tab', () => {}); // window switching
-  globalShortcut.register('Super', () => {}); // Windows key / Super key
-  globalShortcut.register('Super+L', () => {}); // lock screen
+  // globalShortcut.register('Alt+Tab', () => {}); // REMOVED: window switching (unreliable on Linux, overly aggressive)
+  // globalShortcut.register('Super', () => {}); // REMOVED: Windows key / Super key (unreliable on Linux)
+  // globalShortcut.register('Super+L', () => {}); // REMOVED: lock screen (unreliable on Linux)
 
   // Secret exit shortcut
   globalShortcut.register('CommandOrControl+Q', () => {

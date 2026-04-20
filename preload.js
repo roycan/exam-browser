@@ -4,7 +4,9 @@ window.addEventListener('contextmenu', (e) => {
 }, false);
 
 // Initialize offense counter from localStorage
-let offenseCount = parseInt(localStorage.getItem('examOffenseCount') || '0', 10);
+// Reset offense counter on app start to give students a fresh start
+localStorage.removeItem('examOffenseCount');
+let offenseCount = 0;
 
 // Create notification banner element
 const notificationBanner = document.createElement('div');
@@ -78,9 +80,6 @@ function showNotification(message, duration) {
 
 // Handle offense
 function handleOffense(shortcutName) {
-  // Log the offense
-  console.log(`[EXAM SECURITY] Blocked shortcut: ${shortcutName} (Offense #${offenseCount + 1})`);
-  
   // Increment counter
   offenseCount++;
   localStorage.setItem('examOffenseCount', offenseCount.toString());
@@ -139,10 +138,10 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'F12') {
     blockedShortcut = 'F12';
   }
-  // Escape key
-  else if (e.key === 'Escape') {
-    blockedShortcut = 'Escape';
-  }
+  // Escape key - REMOVED: Needed for modal dismissal
+  // else if (e.key === 'Escape') {
+  //   blockedShortcut = 'Escape';
+  // }
   // Print Screen
   else if (e.key === 'PrintScreen') {
     blockedShortcut = 'PrintScreen';
@@ -164,7 +163,9 @@ window.addEventListener('keydown', (e) => {
   // Ctrl/Cmd + single key shortcuts
   else if (modifierKey && !e.shiftKey && !e.altKey) {
     const key = e.key.toLowerCase();
-    if (['c', 'v', 'x', 'a', 's', 'p', 't', 'n', 'w', 'r', 'l', 'f', 'g', 'u'].includes(key)) {
+    // REMOVED: 'c', 'v', 'a' (copy, paste, select all - needed for exam answers)
+    // Kept: 'x', 's', 'p', 't', 'n', 'w', 'r', 'l', 'f', 'g', 'u' (cut, save, print, new tab, new window, close, refresh, address bar, find, view source)
+    if (['x', 's', 'p', 't', 'n', 'w', 'r', 'l', 'f', 'g', 'u'].includes(key)) {
       blockedShortcut = `${modifierName}+${e.key.toUpperCase()}`;
     }
   }
