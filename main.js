@@ -39,7 +39,12 @@ function createWindow() {
   win.loadURL('https://khub.mc.pshs.edu.ph/');
 
   // Disable navigation outside Moodle
+  // Also blocks file:// URLs (drag-and-drop protection)
   win.webContents.on('will-navigate', (event, url) => {
+    if (url.startsWith('file://')) {
+      event.preventDefault();
+      return;
+    }
     if (
         !url.startsWith('https://khub.mc.pshs.edu.ph/') &&
         !url.startsWith('https://accounts.google.com/')
@@ -48,13 +53,22 @@ function createWindow() {
     }
   });
 
-  // Block new window creation except for Google accounts (for SSO login) and Moodle domain
-win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://accounts.google.com/') || url.startsWith('https://khub.mc.pshs.edu.ph/')) {
+  // Handle new window requests (window.open, target="_blank", etc.)
+  // - Google SSO: allow popup (needed for OAuth flow)
+  // - Moodle: deny popup and navigate in the SAME window instead
+  //   (Moodle's quiz "Start attempt" uses window.open which creates
+  //    a new BrowserWindow that is invisible behind kiosk mode)
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('https://accounts.google.com/')) {
         return { action: 'allow' };
     }
+    if (url.startsWith('https://khub.mc.pshs.edu.ph/')) {
+        // Navigate in the main kiosk window instead of opening a new window
+        win.loadURL(url);
+        return { action: 'deny' };
+    }
     return { action: 'deny' };
-});
+  });
 
   // Clean up reference when window is closed
   win.on('closed', () => {
@@ -72,22 +86,6 @@ win.webContents.setWindowOpenHandler(({ url }) => {
   win.on('blur', () => {
     if (win && !win.isDestroyed()) {
       win.focus();
-    }
-  });
-
-  // Block drag-and-drop of files into the browser
-  win.webContents.on('will-navigate', (event, url) => {
-    // Block file:// URLs (drag-and-drop)
-    if (url.startsWith('file://')) {
-      event.preventDefault();
-      return;
-    }
-    // Block navigation outside Moodle
-    if (
-        !url.startsWith('https://khub.mc.pshs.edu.ph/') &&
-        !url.startsWith('https://accounts.google.com/')
-    ) {
-      event.preventDefault();
     }
   });
 }

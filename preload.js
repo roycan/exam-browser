@@ -37,7 +37,6 @@ notificationBanner.style.cssText = `
   transition: transform 0.3s ease-in-out;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 `;
-document.body.appendChild(notificationBanner);
 
 // Create full-screen overlay for 3rd strike
 const lockOverlay = document.createElement('div');
@@ -67,7 +66,15 @@ lockOverlay.innerHTML = `
     Please contact your instructor.
   </p>
 `;
-document.body.appendChild(lockOverlay);
+
+// Defer DOM insertion until document.body is available.
+// The preload script runs before the page's DOM is fully constructed,
+// so document.body may be null at the top level. We wait for
+// DOMContentLoaded to guarantee body exists before appending elements.
+window.addEventListener('DOMContentLoaded', () => {
+  document.body.appendChild(notificationBanner);
+  document.body.appendChild(lockOverlay);
+});
 
 let notificationTimeout = null;
 
